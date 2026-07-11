@@ -10,6 +10,7 @@
 
 ## Global Constraints
 
+- **BYOK (amended 2026-07-11):** the LLM is bring-your-own-key in the UI — provider dropdown (Anthropic / OpenAI / Google Gemini / Groq), model dropdown, and an API-key field. The key lives in browser memory only (React state), is sent per request, and is NEVER stored (no DB, no localStorage, no `.env`) or logged. Server builds the provider client transiently via `lib/providers.ts`; `app/api/summarize/route.ts` allowlist-guards provider+model. No server-side `ANTHROPIC_API_KEY`. **Phase 2 open item:** embeddings need a key too, but only OpenAI/Gemini offer embeddings — decide whether to reuse that key for embeddings or add a separate embedding-provider picker (Voyage may be dropped).
 - **Deploy target:** Vercel only. No Supabase, no Render, no Fly.io. Database = Neon Postgres (Vercel Marketplace). Cache/rate-limit (if ever added) = Upstash Redis (Vercel Marketplace). Not in scope now.
 - **Node driver:** use `@neondatabase/serverless` (HTTP driver) — NOT `pg`. Vercel serverless functions must not hold long-lived TCP pools.
 - **Secrets:** `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, `DATABASE_URL` only. All via env vars. Never commit. `.env.example` documents them. App throws on startup if any is missing.
