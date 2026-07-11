@@ -17,36 +17,40 @@ export default function MetricsPage() {
     fetch('/api/metrics').then((r) => r.json()).then(setM).catch((e) => setErr(String(e)))
   }, [])
 
-  const card = 'rounded-lg border border-neutral-200 p-4 dark:border-neutral-800'
-
   return (
-    <main className="mx-auto max-w-3xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Metrics</h1>
-        <Link href="/" className="text-sm text-neutral-500 underline">Back</Link>
+    <main className="wrap">
+      <div className="topbar">
+        <span className="brand">Research Copilot</span>
+        <Link href="/" className="navlink">← Back</Link>
       </div>
-      {err && <p className="mt-4 text-sm text-red-700">{err}</p>}
-      {!m && !err && <p className="mt-4 text-sm text-neutral-500">Loading… (requires the database to be provisioned)</p>}
+
+      <header className="hero">
+        <h1>Metrics.</h1>
+        <p>A live read on what the copilot has done — papers indexed, summaries written, how faithful those summaries were, and how long each step takes.</p>
+      </header>
+
+      {err && <div className="error">{err}</div>}
+      {!m && !err && <p className="spinner">Loading…</p>}
+
       {m && (
-        <>
-          <div className="mt-6 grid grid-cols-3 gap-3">
-            <div className={card}><div className="text-2xl font-semibold">{m.papers}</div><div className="text-xs text-neutral-500">papers indexed</div></div>
-            <div className={card}><div className="text-2xl font-semibold">{m.summaries}</div><div className="text-xs text-neutral-500">summaries</div></div>
-            <div className={card}><div className="text-2xl font-semibold">{m.avgTrust === null ? '—' : `${Math.round(m.avgTrust * 100)}%`}</div><div className="text-xs text-neutral-500">avg trust score</div></div>
+        <section className="panel">
+          <div className="tiles">
+            <div className="tile"><div className="v">{m.papers}</div><div className="k">papers indexed</div></div>
+            <div className="tile"><div className="v">{m.summaries}</div><div className="k">summaries</div></div>
+            <div className="tile"><div className="v">{m.avgTrust === null ? '—' : `${Math.round(m.avgTrust * 100)}%`}</div><div className="k">avg trust score</div></div>
           </div>
-          <h2 className="mt-8 text-sm font-semibold uppercase tracking-wide text-neutral-500">Latency by action</h2>
-          <table className="mt-3 w-full text-sm">
-            <thead><tr className="text-left text-neutral-500"><th className="p-1">Action</th><th className="p-1">Count</th><th className="p-1">Avg ms</th></tr></thead>
+
+          <p className="section-label" style={{ marginTop: '1.8rem' }}>Latency by action</p>
+          <table className="data">
+            <thead><tr><th>Action</th><th>Count</th><th>Avg ms</th></tr></thead>
             <tbody>
               {m.latency.map((l) => (
-                <tr key={l.action} className="border-t border-neutral-200 dark:border-neutral-800">
-                  <td className="p-1">{l.action}</td><td className="p-1">{l.n}</td><td className="p-1">{l.avgMs ?? '—'}</td>
-                </tr>
+                <tr key={l.action}><td>{l.action}</td><td>{l.n}</td><td>{l.avgMs ?? '—'}</td></tr>
               ))}
-              {m.latency.length === 0 && <tr><td className="p-1 text-neutral-500" colSpan={3}>No activity yet.</td></tr>}
+              {m.latency.length === 0 && <tr><td colSpan={3} style={{ color: 'var(--muted)' }}>No activity yet.</td></tr>}
             </tbody>
           </table>
-        </>
+        </section>
       )}
     </main>
   )
