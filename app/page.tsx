@@ -1,16 +1,30 @@
 'use client'
 
 import { useState } from 'react'
+import { PROVIDERS, type ProviderId } from '@/lib/provider-list'
 
 export default function Home() {
+  const [provider, setProvider] = useState<ProviderId>('anthropic')
+  const [model, setModel] = useState<string>(PROVIDERS.anthropic.models[0])
+  const [apiKey, setApiKey] = useState('') // memory only — never stored or sent anywhere but our summarize call
   const [input, setInput] = useState('1706.03762')
+
   const [summary, setSummary] = useState('')
   const [title, setTitle] = useState('')
   const [fullText, setFullText] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  function pickProvider(p: ProviderId) {
+    setProvider(p)
+    setModel(PROVIDERS[p].models[0])
+  }
+
   async function run() {
+    if (!apiKey.trim()) {
+      setError('Enter your API key first.')
+      return
+    }
     setLoading(true)
     setError('')
     setSummary('')
@@ -20,7 +34,7 @@ export default function Home() {
       const res = await fetch('/api/summarize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, provider, model, apiKey }),
       })
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({ error: res.statusText }))
@@ -43,20 +57,56 @@ export default function Home() {
     }
   }
 
+  const selectClass =
+    'rounded-md border border-neutral-300 px-2 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900'
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <h1 className="text-2xl font-semibold">Research Copilot</h1>
       <p className="mt-1 text-sm text-neutral-500">
-        Full-text paper summaries — paste an arXiv id or URL (e.g. 1706.03762).
+        Full-text paper summaries. Bring your own key — it stays in your browser and is never stored.
       </p>
 
-      <div className="mt-6 flex gap-2">
+      {/* BYOK controls */}
+      <div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-[auto_auto_1fr]">
+        <select
+          className={selectClass}
+          value={provider}
+          onChange={(e) => pickProvider(e.target.value as ProviderId)}
+          aria-label="Provider"
+        >
+          {(Object.keys(PROVIDERS) as ProviderId[]).map((p) => (
+            <option key={p} value={p}>
+              {PROVIDERS[p].label}
+            </option>
+          ))}
+        </select>
+        <select className={selectClass} value={model} onChange={(e) => setModel(e.target.value)} aria-label="Model">
+          {PROVIDERS[provider].models.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <input
+          type="password"
+          className={selectClass}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder={`${PROVIDERS[provider].label} API key`}
+          aria-label="API key"
+          autoComplete="off"
+        />
+      </div>
+
+      {/* Paper input */}
+      <div className="mt-2 flex gap-2">
         <input
           className="flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !loading && run()}
-          placeholder="arXiv id or URL"
+          placeholder="arXiv id or URL (e.g. 1706.03762)"
         />
         <button
           onClick={run}

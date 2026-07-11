@@ -2,18 +2,27 @@ import { resolveInput } from '@/lib/sources/resolve'
 import { fetchArxiv } from '@/lib/sources/arxiv'
 import { extractPdf } from '@/lib/ingest/pdf'
 import { streamSummary } from '@/lib/rag/summarize'
+import { getModel, isValidSelection } from '@/lib/providers'
 
 export const maxDuration = 300
 
 export async function POST(req: Request) {
-  let input: unknown
+  let payload: { input?: unknown; provider?: unknown; model?: unknown; apiKey?: unknown }
   try {
-    ;({ input } = await req.json())
+    payload = await req.json()
   } catch {
     return Response.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
+
+  const { input, provider, model, apiKey } = payload
   if (typeof input !== 'string' || input.trim() === '') {
     return Response.json({ error: 'Provide a paper id or URL' }, { status: 400 })
+  }
+  if (typeof apiKey !== 'string' || apiKey.trim() === '') {
+    return Response.json({ error: 'Enter your API key' }, { status: 400 })
+  }
+  if (typeof provider !== 'string' || typeof model !== 'string' || !isValidSelection(provider, model)) {
+    return Response.json({ error: 'Unsupported provider or model' }, { status: 400 })
   }
 
   const { source, id } = resolveInput(input)
@@ -36,7 +45,6 @@ export async function POST(req: Request) {
   try {
     const pages = await extractPdf(meta.pdfUrl!)
     const joined = pages.map((p) => p.text).join('\n').slice(0, 120_000)
-    // Only treat it as full text if it's clearly more than the abstract.
     if (joined.length > meta.abstract.length * 2) {
       body = joined
       fullText = true
@@ -45,7 +53,9 @@ export async function POST(req: Request) {
     // fall back to abstract-only
   }
 
-  return streamSummary(meta, body, fullText).toTextStreamResponse({
+  // apiKey is used only to build this request's provider client — never stored or logged.
+  const llm = getModel(provider, model, apiKey)
+  return streamSummary(llm, meta, body, fullText).toTextStreamResponse({
     headers: {
       'x-paper-title': encodeURIComponent(meta.title),
       'x-full-text': String(fullText),

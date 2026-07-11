@@ -1,7 +1,5 @@
-import { anthropic } from '@ai-sdk/anthropic'
-import { streamText } from 'ai'
+import { streamText, type LanguageModel } from 'ai'
 import type { PaperMeta } from '@/lib/sources/types'
-import { GENERATION_MODEL } from '@/lib/models'
 
 // Sections carried over verbatim from the legacy notebook's tuned prompt.
 const SYSTEM = `You are a research assistant that makes academic papers accessible to a general audience.
@@ -26,12 +24,7 @@ export function buildSummaryPrompt(meta: PaperMeta, body: string, fullText: bool
   return { system: SYSTEM, user: `${note}\n\n${header}\n${body}` }
 }
 
-export function streamSummary(meta: PaperMeta, body: string, fullText: boolean) {
+export function streamSummary(model: LanguageModel, meta: PaperMeta, body: string, fullText: boolean) {
   const { system, user } = buildSummaryPrompt(meta, body, fullText)
-  return streamText({
-    model: anthropic(GENERATION_MODEL),
-    system,
-    prompt: user,
-    maxOutputTokens: 1500,
-  })
+  return streamText({ model, system, prompt: user, maxOutputTokens: 1500 })
 }
