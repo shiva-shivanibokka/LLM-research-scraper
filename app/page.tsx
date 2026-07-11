@@ -102,6 +102,16 @@ export default function Home() {
     return j
   }
 
+  async function removePaper(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
+    setError('')
+    try {
+      await fetch(`/api/papers?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      if (selected?.id === id) { setSelected(null); setSummary(null); setPAnswer(null) }
+      await loadPapers()
+    } catch (err) { setError(msg(err)) }
+  }
+
   async function addPaper() {
     if (!input.trim()) return setError('Paste a paper ID or URL first.')
     if (!embKey.trim()) return setError('Add your Gemini key above — it indexes the paper for search.')
@@ -250,13 +260,16 @@ export default function Home() {
             <p className="sub">Click a paper to summarize it and ask it questions.</p>
             <div className="grid" style={{ gap: '.6rem' }}>
               {papers.map((p) => (
-                <button key={p.id} className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => summarize(p)}>
-                  <div className="t">{p.title}</div>
-                  <div className="m">
-                    {p.year ?? '—'} · <span className={`badge ${p.fullTextAvailable ? 'full' : 'abs'}`}>{p.fullTextAvailable ? 'full text' : 'abstract only'}</span>
-                    {p.citationCount != null ? ` · ${p.citationCount.toLocaleString()} citations` : ''}
-                  </div>
-                </button>
+                <div key={p.id} className="paper-row">
+                  <button className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => summarize(p)}>
+                    <div className="t">{p.title}</div>
+                    <div className="m">
+                      {p.year ?? '—'} · <span className={`badge ${p.fullTextAvailable ? 'full' : 'abs'}`}>{p.fullTextAvailable ? 'full text' : 'abstract only'}</span>
+                      {p.citationCount != null ? ` · ${p.citationCount.toLocaleString()} citations` : ''}
+                    </div>
+                  </button>
+                  <button className="remove" title="Remove from library" aria-label="Remove from library" onClick={(e) => removePaper(p.id, e)}>✕</button>
+                </div>
               ))}
               {papers.length === 0 && <div className="empty">Your library is empty. Add a paper above to get started.</div>}
             </div>

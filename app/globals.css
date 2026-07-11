@@ -141,6 +141,10 @@ select:focus, input:focus-visible, button:focus-visible, textarea:focus-visible 
 }
 .paper-card:hover { border-color: var(--cyan); transform: translateY(-1px); }
 .paper-card.active { border-color: var(--violet); box-shadow: 0 0 0 1px var(--violet); }
+.paper-row { display: flex; gap: .5rem; align-items: stretch; }
+.paper-row .paper-card { flex: 1; }
+.remove { flex: none; width: 40px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); border-radius: 10px; cursor: pointer; font-size: .8rem; transition: color .15s ease, border-color .15s ease; }
+.remove:hover { color: var(--bad); border-color: var(--bad); }
 .paper-card .t { font-size: .92rem; font-weight: 600; line-height: 1.35; }
 .paper-card .m { margin-top: .35rem; font-family: var(--font-mono); font-size: .72rem; color: var(--muted); }
 
