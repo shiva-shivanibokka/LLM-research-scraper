@@ -9,6 +9,12 @@ import { db } from '@/lib/db/client'
 import { papers, chunks } from '@/lib/db/schema'
 
 const MAX_FULLTEXT = 200_000
+// Gemini's free embedding tier counts each embedded text as one quota unit, capped
+// at 100/minute. A full paper chunks into well over that, so one Add-to-library blows
+// the budget. Cap chunks so a single paper fits one batchEmbedContents call (100/call)
+// with margin. ~90 chunks × 3000 chars still covers the whole full_text for most papers.
+// ponytail: hard cap for the free tier — raise it (or remove) once on a paid Gemini key.
+const MAX_CHUNKS = 90
 
 // Postgres text/jsonb columns reject NUL bytes (0x00); PDF extraction (and, rarely,
 // source metadata) can contain them, causing "invalid byte sequence for encoding
@@ -61,7 +67,7 @@ export async function ingest(input: string, embApiKey: string): Promise<IngestRe
 
   // Chunk full text when available, else the abstract as a single page.
   const chunkSource = fullTextAvailable ? pages : [{ page: 1, text: abstract }]
-  const cks = chunkPages(chunkSource)
+  const cks = chunkPages(chunkSource).slice(0, MAX_CHUNKS)
 
   await db.delete(chunks).where(eq(chunks.paperId, paper.id))
   if (cks.length > 0) {
