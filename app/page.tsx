@@ -8,7 +8,7 @@ import { PROVIDERS, type ProviderId } from '@/lib/provider-list'
 type Paper = { id: string; title: string; authors: string[]; year: number | null; fullTextAvailable: boolean; citationCount: number | null }
 type Citation = { marker: string; paperTitle: string; section: string; page: number }
 type Metrics = { papers: number; summaries: number; avgTrust: number | null; latency: { action: string; avgMs: number | null; n: number }[] }
-type TabId = 'library' | 'ask' | 'compare' | 'metrics'
+type TabId = 'library' | 'ask' | 'compare' | 'metrics' | 'demo'
 
 const EXAMPLES = [
   { label: 'Attention Is All You Need', id: '1706.03762' },
@@ -16,6 +16,7 @@ const EXAMPLES = [
   { label: 'AlphaFold (DOI)', id: 'DOI:10.1038/s41586-021-03819-2' },
 ]
 const TABS: { id: TabId; label: string }[] = [
+  { id: 'demo', label: '✦ Demo' },
   { id: 'library', label: 'Library' },
   { id: 'ask', label: 'Ask library' },
   { id: 'compare', label: 'Compare' },
@@ -80,19 +81,8 @@ export default function Home() {
   const [cmpRows, setCmpRows] = useState<{ title: string; approach: string; finding: string }[] | null>(null)
 
   const [metrics, setMetrics] = useState<Metrics | null>(null)
-  const [demoActive, setDemoActive] = useState(false)
 
   const llm = () => ({ provider, model, apiKey: llmKey })
-
-  function loadDemo() {
-    setError('')
-    setDemoActive(true)
-    setTab('library')
-    setSelected(DEMO_PAPER)
-    setSummary({ text: DEMO_SUMMARY, trust: 0.96, unsupported: [] })
-    setPQuestion(DEMO_QUESTION)
-    setPAnswer(DEMO_ANSWER)
-  }
 
   const loadPapers = useCallback(async () => {
     try {
@@ -178,17 +168,14 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="hero-actions">
-          <button className="btn primary" onClick={loadDemo}>See a live demo — no key needed</button>
-          <span className="help" style={{ margin: 0 }}>or add your keys below to run it for real.</span>
-        </div>
+        <p className="help" style={{ marginTop: '1.3rem' }}>New here? Open the <b>✦ Demo</b> tab below to watch it run on a sample paper — no key needed.</p>
       </header>
 
       {error && <div className="error">{error}</div>}
 
       {/* Persistent keys */}
       <section className="panel">
-        <h2>Your keys</h2>
+        <h2>Your keys <Tip>Held only in this browser tab and sent straight to the model provider with each request. We never see, store, or log them — they&apos;re gone when you close the tab.</Tip></h2>
         <p className="sub">Kept in this browser for the session only — never saved or sent anywhere but the model provider.</p>
         <div className="grid keys">
           <div className="field">
@@ -228,11 +215,25 @@ export default function Home() {
         ))}
       </div>
 
+      {/* DEMO */}
+      {tab === 'demo' && (
+        <section className="panel">
+          <h2>{DEMO_PAPER.title} <Tip>A pre-computed example. This tab makes no API or database calls — it just shows exactly what a real summary, trust score, and cited answer look like.</Tip></h2>
+          <p className="demo-banner">✦ Sample output — pre-computed, no API key used.</p>
+          <TrustMeter score={0.96} />
+          <div style={{ marginTop: '1rem' }}><Md>{DEMO_SUMMARY}</Md></div>
+          <p className="section-label" style={{ marginTop: '1.6rem' }}>A grounded, cited answer</p>
+          <p className="demo-q"><b>Q</b> · {DEMO_QUESTION}</p>
+          <AnswerBlock a={DEMO_ANSWER} />
+          <p className="help" style={{ marginTop: '1.4rem' }}>Want to run this on any paper? Add your keys above, then open the <b>Library</b> tab.</p>
+        </section>
+      )}
+
       {/* LIBRARY */}
       {tab === 'library' && (
         <>
           <section className="panel">
-            <h2>Add a paper</h2>
+            <h2>Add a paper <Tip>We look the paper up on arXiv or Semantic Scholar, download the PDF when it&apos;s public, split it into passages, and embed each one so the paper becomes searchable.</Tip></h2>
             <p className="sub">Paste a paper&apos;s identifier. We fetch its full text (or abstract, if that&apos;s all that&apos;s public), index it, and add it to your library.</p>
             <div className="row">
               <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && busy !== 'add' && addPaper()} placeholder="arXiv ID (e.g. 1706.03762), arXiv URL, DOI:10.…, or Semantic Scholar ID" />
@@ -245,27 +246,25 @@ export default function Home() {
           </section>
 
           <section className="panel">
-            <h2>Library <span style={{ color: 'var(--muted)', fontWeight: 400 }}>({papers.length})</span></h2>
+            <h2>Library <span style={{ color: 'var(--muted)', fontWeight: 400 }}>({papers.length})</span> <Tip>Every paper you&apos;ve indexed this session. Selecting one generates its summary and opens Q&amp;A grounded in that paper&apos;s text.</Tip></h2>
             <p className="sub">Click a paper to summarize it and ask it questions.</p>
             <div className="grid" style={{ gap: '.6rem' }}>
-              {(demoActive ? [DEMO_PAPER, ...papers] : papers).map((p) => (
-                <button key={p.id} className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => (p.id === 'demo' ? loadDemo() : summarize(p))}>
+              {papers.map((p) => (
+                <button key={p.id} className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => summarize(p)}>
                   <div className="t">{p.title}</div>
                   <div className="m">
-                    {p.id === 'demo' && <><span className="badge demo">demo</span> · </>}
                     {p.year ?? '—'} · <span className={`badge ${p.fullTextAvailable ? 'full' : 'abs'}`}>{p.fullTextAvailable ? 'full text' : 'abstract only'}</span>
                     {p.citationCount != null ? ` · ${p.citationCount.toLocaleString()} citations` : ''}
                   </div>
                 </button>
               ))}
-              {!demoActive && papers.length === 0 && <div className="empty">Your library is empty. Add a paper above to get started.</div>}
+              {papers.length === 0 && <div className="empty">Your library is empty. Add a paper above to get started.</div>}
             </div>
           </section>
 
           {selected && (
             <section className="panel">
-              <h2>{selected.title}</h2>
-              {selected.id === 'demo' && <p className="demo-banner">▸ Sample output — pre-computed, no API key used.</p>}
+              <h2>{selected.title} <Tip>The summary is written from the paper&apos;s full text. The trust score is a second pass that re-checks every claim against the retrieved source passages and reports the share that hold up.</Tip></h2>
               {busy === 'sum' && <p className="spinner">Reading the full text, summarizing, and scoring faithfulness…</p>}
               {summary && (
                 <>
@@ -294,7 +293,7 @@ export default function Home() {
       {/* ASK LIBRARY */}
       {tab === 'ask' && (
         <section className="panel">
-          <h2>Ask across your library</h2>
+          <h2>Ask across your library <Tip>Your question is matched against passages from every paper you&apos;ve added; the model then answers only from the closest matches, and each citation names the source paper, section, and page.</Tip></h2>
           <p className="sub">One question, answered from every paper you&apos;ve added — with citations naming which paper each answer came from. A chatbot can&apos;t do this; it has no memory of what you&apos;ve read.</p>
           <div className="row">
             <input value={libQuestion} onChange={(e) => setLibQuestion(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && askLibrary()} placeholder="What do my papers say about positional encoding?" />
@@ -308,7 +307,7 @@ export default function Home() {
       {/* COMPARE */}
       {tab === 'compare' && (
         <section className="panel">
-          <h2>Compare against references</h2>
+          <h2>Compare against references <Tip>We ask Semantic Scholar for the paper&apos;s most-cited references, then summarize each one&apos;s abstract into a single row so you can scan approaches and findings side by side.</Tip></h2>
           <p className="sub">Give a paper&apos;s ID and we&apos;ll pull its most-cited references from Semantic Scholar and summarize each into one table of approaches and findings.</p>
           <div className="row">
             <input value={cmpInput} onChange={(e) => setCmpInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && runCompare()} placeholder="Paper ID (e.g. 1706.03762)" />
@@ -328,7 +327,7 @@ export default function Home() {
       {/* METRICS */}
       {tab === 'metrics' && (
         <section className="panel">
-          <h2>Metrics</h2>
+          <h2>Metrics <Tip>Aggregated from an events log — one row is written on every ingest, summarize, and ask — so the counts and latencies are real, not mocked.</Tip></h2>
           <p className="sub">What the copilot has done — indexed papers, summaries written, how faithful they were, and how long each step takes.</p>
           {!metrics && <p className="spinner">Loading…</p>}
           {metrics && (
@@ -353,6 +352,15 @@ export default function Home() {
 
       <p className="footer">Bring your own key · nothing stored · built on arXiv &amp; Semantic Scholar</p>
     </main>
+  )
+}
+
+function Tip({ children }: { children: string }) {
+  return (
+    <span className="tip">
+      <span className="q" tabIndex={0} role="button" aria-label="What this does">?</span>
+      <span className="pop">{children}</span>
+    </span>
   )
 }
 
