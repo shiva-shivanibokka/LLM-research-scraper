@@ -1,7 +1,5 @@
 {
   "functions": {
-    "app/api/ingest/route.ts": { "maxDuration": 300 },
-    "app/api/summarize/route.ts": { "maxDuration": 300 },
-    "app/api/compare/route.ts": { "maxDuration": 300 }
+    "app/api/summarize/route.ts": { "maxDuration": 60 }
   }
 }
