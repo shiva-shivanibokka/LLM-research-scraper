@@ -10,6 +10,11 @@ import { papers, chunks } from '@/lib/db/schema'
 
 const MAX_FULLTEXT = 200_000
 
+// Postgres text/jsonb columns reject NUL bytes (0x00); PDF extraction (and, rarely,
+// source metadata) can contain them, causing "invalid byte sequence for encoding
+// UTF8: 0x00" and failing the insert. Strip them before anything reaches the DB.
+const stripNul = (s: string) => s.replace(/\x00/g, '')
+
 export type IngestResult = { paperId: string; title: string; fullTextAvailable: boolean }
 
 /** Resolve → fetch metadata + full text → chunk → embed → upsert. Idempotent
@@ -23,7 +28,8 @@ export async function ingest(input: string, embApiKey: string): Promise<IngestRe
   let fullTextAvailable = false
   if (meta.pdfUrl) {
     try {
-      pages = await extractPdf(meta.pdfUrl)
+      // Strip NUL at extraction so it's gone from both full_text and chunk content.
+      pages = (await extractPdf(meta.pdfUrl)).map((p) => ({ ...p, text: stripNul(p.text) }))
       const joined = pages.map((p) => p.text).join('\n')
       if (joined.length > (meta.abstract?.length ?? 0) * 2) {
         fullText = joined.slice(0, MAX_FULLTEXT)
@@ -34,28 +40,27 @@ export async function ingest(input: string, embApiKey: string): Promise<IngestRe
     }
   }
 
+  // Sanitize source free-text too (defense in depth). Deduped across insert + update.
+  const abstract = stripNul(meta.abstract)
+  const row = {
+    title: stripNul(meta.title),
+    authors: meta.authors.map(stripNul),
+    year: meta.year,
+    abstract,
+    url: stripNul(meta.url),
+    fullText,
+    fullTextAvailable,
+    citationCount: meta.citationCount ?? null,
+  }
+
   const [paper] = await db
     .insert(papers)
-    .values({
-      source: meta.source,
-      externalId: meta.externalId,
-      title: meta.title,
-      authors: meta.authors,
-      year: meta.year,
-      abstract: meta.abstract,
-      url: meta.url,
-      fullText,
-      fullTextAvailable,
-      citationCount: meta.citationCount ?? null,
-    })
-    .onConflictDoUpdate({
-      target: [papers.source, papers.externalId],
-      set: { title: meta.title, authors: meta.authors, year: meta.year, abstract: meta.abstract, url: meta.url, fullText, fullTextAvailable, citationCount: meta.citationCount ?? null },
-    })
+    .values({ source: meta.source, externalId: meta.externalId, ...row })
+    .onConflictDoUpdate({ target: [papers.source, papers.externalId], set: row })
     .returning()
 
   // Chunk full text when available, else the abstract as a single page.
-  const chunkSource = fullTextAvailable ? pages : [{ page: 1, text: meta.abstract ?? '' }]
+  const chunkSource = fullTextAvailable ? pages : [{ page: 1, text: abstract }]
   const cks = chunkPages(chunkSource)
 
   await db.delete(chunks).where(eq(chunks.paperId, paper.id))
