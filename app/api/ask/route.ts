@@ -2,6 +2,7 @@ import { getModel } from '@/lib/providers'
 import { parseLLM } from '@/lib/validate'
 import { retrieve } from '@/lib/rag/retrieve'
 import { ask } from '@/lib/rag/ask'
+import { dbErrorMessage } from '@/lib/db/error'
 import { logEvent } from '@/lib/log'
 
 export const maxDuration = 60
@@ -33,6 +34,6 @@ export async function POST(req: Request) {
     await logEvent('ask', { paperId })
     return Response.json(result)
   } catch (e) {
-    return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 })
+    return Response.json({ error: dbErrorMessage(e) }, { status: 502 })
   }
 }

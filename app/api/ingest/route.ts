@@ -1,4 +1,5 @@
 import { ingest } from '@/lib/ingest/pipeline'
+import { dbErrorMessage } from '@/lib/db/error'
 import { logEvent } from '@/lib/log'
 
 export const maxDuration = 60
@@ -24,6 +25,6 @@ export async function POST(req: Request) {
     await logEvent('ingest', { paperId: result.paperId, latencyMs: Date.now() - started })
     return Response.json(result)
   } catch (e) {
-    return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 })
+    return Response.json({ error: dbErrorMessage(e) }, { status: 502 })
   }
 }

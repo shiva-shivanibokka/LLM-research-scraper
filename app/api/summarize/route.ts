@@ -5,6 +5,7 @@ import { getModel } from '@/lib/providers'
 import { parseLLM } from '@/lib/validate'
 import { generateSummary } from '@/lib/rag/summarize'
 import { scoreFaithfulness } from '@/lib/rag/faithfulness'
+import { dbErrorMessage } from '@/lib/db/error'
 import { logEvent } from '@/lib/log'
 
 export const maxDuration = 60
@@ -54,6 +55,6 @@ export async function POST(req: Request) {
       title: paper.title, fullTextAvailable: paper.fullTextAvailable,
     })
   } catch (e) {
-    return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 })
+    return Response.json({ error: dbErrorMessage(e) }, { status: 502 })
   }
 }

@@ -12,10 +12,16 @@ export async function GET() {
     const counts = await db.execute(
       sql`SELECT (SELECT count(*)::int FROM papers) AS papers, (SELECT count(*)::int FROM chunks) AS chunks`,
     )
+    // The papers upsert uses ON CONFLICT (source, external_id); that requires a
+    // unique constraint/index on exactly those columns. List what the DB actually has.
+    const paperConstraints = await db.execute(
+      sql`SELECT conname, pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conrelid = 'papers'::regclass`,
+    )
     return Response.json({
       expectedByCode: { model: EMBEDDING_MODEL, dim: EMBEDDING_DIM },
       dbColumn: col.rows?.[0] ?? col,
       counts: counts.rows?.[0] ?? counts,
+      paperConstraints: paperConstraints.rows ?? paperConstraints,
     })
   } catch (e) {
     return Response.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
