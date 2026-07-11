@@ -19,4 +19,9 @@ describe('chunkPages', () => {
   it('skips near-empty slices', () => {
     expect(chunkPages([{ page: 1, text: 'tiny' }])).toEqual([])
   })
+
+  it('skips reference-dump passages so they never get indexed', () => {
+    const refs = 'References ' + Array.from({ length: 12 }, (_, i) => `[${i + 1}] Some Author, A paper title, 2020.`).join(' ')
+    expect(chunkPages([{ page: 9, text: refs }])).toEqual([])
+  })
 })

@@ -14,9 +14,21 @@ export function labelChunks(cs: RetrievedChunk[]): { context: string; citations:
   return { context, citations }
 }
 
-/** Keep only the citations the model actually referenced in its answer. Pure — unit tested. */
+/** Remove the papers' OWN reference numbers ([6], [16, 17], …) that the model
+ *  copies out of the source text, while leaving our [Cn] citation markers intact. */
+export function stripRefNumbers(answer: string): string {
+  return answer
+    .replace(/\[\s*\d[\d\s,]*\]/g, '') // bracketed pure numbers — never our markers (ours start with C)
+    .replace(/\s+([,.;:)])/g, '$1')    // tidy the space left dangling before punctuation
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim()
+}
+
+/** Keep only the citations the model actually referenced. Handles combined
+ *  markers like [C6, C1] and avoids C1-matches-C11 false positives. Pure — unit tested. */
 export function usedCitations(answer: string, citations: Citation[]): Citation[] {
-  return citations.filter((c) => answer.includes(`[${c.marker}]`))
+  const used = new Set(answer.match(/C\d+/g) ?? [])
+  return citations.filter((c) => used.has(c.marker))
 }
 
 export async function ask(
@@ -31,5 +43,6 @@ Cite ONLY with [Cn] markers. The source text often contains the papers' own refe
   const { text } = await generateText({
     model, system, prompt: `SOURCES:\n${context}\n\nQUESTION: ${question}`, maxOutputTokens: 800,
   })
-  return { answer: text, citations: usedCitations(text, citations) }
+  const answer = stripRefNumbers(text)
+  return { answer, citations: usedCitations(answer, citations) }
 }

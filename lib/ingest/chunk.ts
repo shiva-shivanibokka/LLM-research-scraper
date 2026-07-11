@@ -4,6 +4,14 @@ export type Chunk = { idx: number; section: string; page: number; content: strin
 // a layout-aware parser (grobid) only if citations point at the wrong section.
 const HEADER = /^\s*(\d+(?:\.\d+)*)\s+([A-Z][A-Za-z ]{2,40})\s*$/m
 
+// A passage packed with bracketed reference numbers is a bibliography/reference
+// dump — a list of OTHER papers. Indexing it pollutes retrieval (a question about
+// "deep learning" matches the reference list, not the paper's own content). Skip it.
+// ponytail: density heuristic; swap for section-aware parsing if it drops real prose.
+export function isReferenceDump(text: string): boolean {
+  return (text.match(/\[\d{1,3}\]/g) ?? []).length >= 8
+}
+
 /** Split per-page text into overlapping chunks, tagging each with the most
  *  recent section heading and its page number. */
 export function chunkPages(
@@ -23,7 +31,7 @@ export function chunkPages(
     if (h) section = `${h[1]} ${h[2]}`.trim()
     for (let start = 0; start < text.length; start += step) {
       const content = text.slice(start, start + maxChars).trim()
-      if (content.length < 40) continue
+      if (content.length < 40 || isReferenceDump(content)) continue
       chunks.push({ idx: idx++, section, page, content })
     }
   }

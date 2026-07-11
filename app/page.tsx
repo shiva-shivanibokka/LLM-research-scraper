@@ -359,9 +359,9 @@ export default function Home() {
           {metrics && (
             <>
               <div className="tiles">
-                <div className="tile"><div className="v">{metrics.papers}</div><div className="k">papers indexed</div></div>
-                <div className="tile"><div className="v">{metrics.summaries}</div><div className="k">summaries</div></div>
-                <div className="tile"><div className="v">{metrics.avgTrust === null ? '—' : `${Math.round(metrics.avgTrust * 100)}%`}</div><div className="k">avg trust score</div></div>
+                <div className="tile"><div className="v">{metrics.papers}</div><div className="k">papers indexed <Tip>Distinct papers added to your library and split into embedded, searchable passages.</Tip></div></div>
+                <div className="tile"><div className="v">{metrics.summaries}</div><div className="k">summaries <Tip>How many papers you&apos;ve generated a full-text summary for. Summaries are cached, so re-opening a paper is instant.</Tip></div></div>
+                <div className="tile"><div className="v">{metrics.avgTrust === null ? '—' : `${Math.round(metrics.avgTrust * 100)}%`}</div><div className="k">avg trust score <Tip>Average faithfulness across your summaries — the share of summary claims the source passages actually back up. Shows &ldquo;—&rdquo; until at least one summary has been scored (the scoring is a second model call; on Gemini&apos;s free tier it can be skipped when rate-limited).</Tip></div></div>
               </div>
               <p className="section-label" style={{ marginTop: '1.8rem' }}>Latency by action</p>
               <table className="data">
