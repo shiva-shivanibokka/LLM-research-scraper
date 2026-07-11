@@ -13,5 +13,8 @@ export async function embed(texts: string[], apiKey: string): Promise<number[][]
     values: texts,
     providerOptions: { google: { outputDimensionality: EMBEDDING_DIM } },
   })
-  return embeddings
+  // Defense in depth: gemini-embedding-001 is a Matryoshka model, and its batch
+  // endpoint sometimes ignores outputDimensionality (returning 3072). Truncate to
+  // EMBEDDING_DIM so every vector matches the vector(EMBEDDING_DIM) column exactly.
+  return embeddings.map((e) => (e.length > EMBEDDING_DIM ? e.slice(0, EMBEDDING_DIM) : e))
 }
