@@ -222,3 +222,22 @@ table.data td { padding: .5rem .4rem; border-top: 1px solid var(--border); }
 .md a { color: var(--cyan); }
 .md code { font-family: var(--font-mono); background: var(--panel-2); padding: .1rem .35rem; border-radius: 5px; font-size: .85em; }
 .md > :first-child { margin-top: 0; }
+
+/* ---- vs-chatbot comparison strip ---- */
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.6rem; }
+@media (max-width: 720px) { .vs { grid-template-columns: 1fr; } }
+.vs-col { border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.3rem; background: var(--panel-2); }
+.vs-col.lit { border-color: transparent; background-image: linear-gradient(var(--panel-solid), var(--panel-solid)), var(--grad); background-origin: border-box; background-clip: padding-box, border-box; }
+.vs-tag { font-family: var(--font-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .11em; color: var(--muted); margin-bottom: .8rem; }
+.vs-tag.grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.vs-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.vs-col li { font-size: .9rem; color: var(--muted); display: flex; gap: .55rem; line-height: 1.4; }
+.vs-col.lit li { color: var(--text); }
+.vs-col li .mk { flex: none; font-weight: 700; }
+.vs-col li .mk.no { color: var(--bad); }
+.vs-col li .mk.yes { color: var(--ok); }
+
+/* ---- demo ---- */
+.hero-actions { display: flex; flex-wrap: wrap; gap: .7rem; margin-top: 1.4rem; align-items: center; }
+.badge.demo { background: color-mix(in srgb, var(--violet) 18%, transparent); color: var(--violet); }
+.demo-banner { font-size: .82rem; color: var(--violet); font-family: var(--font-mono); margin: 0 0 .8rem; }

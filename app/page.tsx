@@ -22,6 +22,40 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'metrics', label: 'Metrics' },
 ]
 
+const VS = [
+  ['Reads the abstract you paste in', 'Reads the full PDF, end to end'],
+  ['Forgets every conversation', 'Keeps a searchable library'],
+  ['“Trust me” — no sources', 'Cites the exact section and page'],
+  ['Can’t check its own claims', 'Scores each summary for faithfulness'],
+]
+
+const DEMO_PAPER: Paper = { id: 'demo', title: 'Attention Is All You Need', authors: ['Vaswani et al.'], year: 2017, fullTextAvailable: true, citationCount: 170825 }
+const DEMO_SUMMARY = `## What is this paper about?
+This paper introduces the **Transformer**, a network for sequence tasks (like translation) built entirely on *attention* — a way of letting every word weigh how much to focus on every other word — dropping the recurrent and convolutional layers earlier models relied on. [§Abstract]
+
+## The problem they are solving
+Recurrent models read a sentence word by word, which is slow to train and struggles to link words that are far apart. The authors wanted a model that sees the whole sequence at once and trains far faster. [§1 Introduction]
+
+## Their approach
+They stack self-attention and feed-forward layers in an encoder–decoder design, use **multi-head attention** so the model can capture several relationships in parallel, and add positional encodings to track word order without recurrence. [§3 Model Architecture]
+
+## Key findings
+The Transformer set a new state of the art on English–German (28.4 BLEU) and English–French (41.8 BLEU) translation, while training in a fraction of the time of the previous best models. [§6 Results]
+
+## Why it matters
+Nearly every modern large language model — GPT, Claude, Gemini — is built on the Transformer. This is the foundation of the current era of AI.
+
+## Limitations and future directions
+Attention cost grows quadratically with sequence length, and the evaluation focuses on translation; the authors suggest extending it to other tasks and modalities. [§7 Conclusion]
+
+## Who should read this?
+Anyone entering machine learning or NLP — it is the single most influential architecture paper of the last decade.`
+const DEMO_QUESTION = 'What datasets did they evaluate on?'
+const DEMO_ANSWER = {
+  answer: 'They evaluated on two WMT 2014 machine-translation benchmarks: English-to-German and English-to-French [C1]. The Transformer reached 28.4 BLEU on English-to-German and set a new single-model state of the art of 41.8 BLEU on English-to-French [C1].',
+  citations: [{ marker: 'C1', paperTitle: 'Attention Is All You Need', section: '6 Results', page: 8 }],
+}
+
 export default function Home() {
   const [provider, setProvider] = useState<ProviderId>('google')
   const [model, setModel] = useState<string>(PROVIDERS.google.models[0])
@@ -46,8 +80,19 @@ export default function Home() {
   const [cmpRows, setCmpRows] = useState<{ title: string; approach: string; finding: string }[] | null>(null)
 
   const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [demoActive, setDemoActive] = useState(false)
 
   const llm = () => ({ provider, model, apiKey: llmKey })
+
+  function loadDemo() {
+    setError('')
+    setDemoActive(true)
+    setTab('library')
+    setSelected(DEMO_PAPER)
+    setSummary({ text: DEMO_SUMMARY, trust: 0.96, unsupported: [] })
+    setPQuestion(DEMO_QUESTION)
+    setPAnswer(DEMO_ANSWER)
+  }
 
   const loadPapers = useCallback(async () => {
     try {
@@ -121,6 +166,22 @@ export default function Home() {
           section-level citations, and a trust score that flags anything the paper doesn&apos;t back up. Everything a general
           chatbot can&apos;t: memory, citations, and a whole library you can question at once.
         </p>
+
+        <div className="vs">
+          <div className="vs-col dim">
+            <div className="vs-tag">General chatbot</div>
+            <ul>{VS.map((r, i) => <li key={i}><span className="mk no">✕</span>{r[0]}</li>)}</ul>
+          </div>
+          <div className="vs-col lit">
+            <div className="vs-tag grad">Research Copilot</div>
+            <ul>{VS.map((r, i) => <li key={i}><span className="mk yes">✓</span>{r[1]}</li>)}</ul>
+          </div>
+        </div>
+
+        <div className="hero-actions">
+          <button className="btn primary" onClick={loadDemo}>See a live demo — no key needed</button>
+          <span className="help" style={{ margin: 0 }}>or add your keys below to run it for real.</span>
+        </div>
       </header>
 
       {error && <div className="error">{error}</div>}
@@ -187,22 +248,24 @@ export default function Home() {
             <h2>Library <span style={{ color: 'var(--muted)', fontWeight: 400 }}>({papers.length})</span></h2>
             <p className="sub">Click a paper to summarize it and ask it questions.</p>
             <div className="grid" style={{ gap: '.6rem' }}>
-              {papers.map((p) => (
-                <button key={p.id} className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => summarize(p)}>
+              {(demoActive ? [DEMO_PAPER, ...papers] : papers).map((p) => (
+                <button key={p.id} className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => (p.id === 'demo' ? loadDemo() : summarize(p))}>
                   <div className="t">{p.title}</div>
                   <div className="m">
+                    {p.id === 'demo' && <><span className="badge demo">demo</span> · </>}
                     {p.year ?? '—'} · <span className={`badge ${p.fullTextAvailable ? 'full' : 'abs'}`}>{p.fullTextAvailable ? 'full text' : 'abstract only'}</span>
                     {p.citationCount != null ? ` · ${p.citationCount.toLocaleString()} citations` : ''}
                   </div>
                 </button>
               ))}
-              {papers.length === 0 && <div className="empty">Your library is empty. Add a paper above to get started.</div>}
+              {!demoActive && papers.length === 0 && <div className="empty">Your library is empty. Add a paper above to get started.</div>}
             </div>
           </section>
 
           {selected && (
             <section className="panel">
               <h2>{selected.title}</h2>
+              {selected.id === 'demo' && <p className="demo-banner">▸ Sample output — pre-computed, no API key used.</p>}
               {busy === 'sum' && <p className="spinner">Reading the full text, summarizing, and scoring faithfulness…</p>}
               {summary && (
                 <>
