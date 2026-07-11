@@ -23,7 +23,11 @@ export async function ask(
   model: LanguageModel, question: string, cs: RetrievedChunk[],
 ): Promise<{ answer: string; citations: Citation[] }> {
   const { context, citations } = labelChunks(cs)
-  const system = `Answer the question using ONLY the numbered sources below. After each claim, cite the source(s) you used with their [Cn] marker(s). If the sources do not contain the answer, say so plainly — do not invent.`
+  const system = `You answer questions about a user's research library using ONLY the numbered sources below.
+
+Write a clear, natural answer in prose. When it's relevant, name the specific paper(s) by title. Support each claim with the [Cn] marker(s) of the source(s) you drew it from.
+
+Cite ONLY with [Cn] markers. The source text often contains the papers' own reference numbers like [1], [12], or [40] — ignore those entirely and NEVER repeat them in your answer. If the sources do not contain the answer, say so plainly — do not invent. Keep it concise.`
   const { text } = await generateText({
     model, system, prompt: `SOURCES:\n${context}\n\nQUESTION: ${question}`, maxOutputTokens: 800,
   })

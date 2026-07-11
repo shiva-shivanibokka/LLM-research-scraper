@@ -55,7 +55,11 @@ export async function POST(req: Request) {
       const r = await scoreFaithfulness(model, summary, cks.map((c) => c.content))
       score = r.score
       unsupported = r.unsupported
-    } catch { /* scoring unavailable — keep the summary, leave trust unscored */ }
+    } catch (scoreErr) {
+      // Keep the summary; just leave trust unscored. Log the reason so we can tell
+      // rate-limit (free-tier RPM) from a structured-output failure.
+      console.error('faithfulness scoring failed:', scoreErr instanceof Error ? scoreErr.message : scoreErr)
+    }
 
     await db
       .insert(summaries)
