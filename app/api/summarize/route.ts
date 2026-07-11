@@ -10,6 +10,19 @@ import { logEvent } from '@/lib/log'
 
 export const maxDuration = 60
 
+// Best-effort faithfulness scoring. Never throws — a rate-limit or structured-output
+// hiccup on this second model call must not break the summary; it just leaves trust
+// unscored, and logs why so we can tell the two apart.
+async function tryScore(model: ReturnType<typeof getModel>, paperId: string, summaryText: string) {
+  try {
+    const cks = await db.select({ content: chunks.content }).from(chunks).where(eq(chunks.paperId, paperId)).limit(30)
+    return await scoreFaithfulness(model, summaryText, cks.map((c) => c.content))
+  } catch (e) {
+    console.error('faithfulness scoring failed:', e instanceof Error ? e.message : e)
+    return { score: null as number | null, unsupported: [] as string[] }
+  }
+}
+
 export async function POST(req: Request) {
   let payload: { paperId?: unknown } & Record<string, unknown>
   try {
@@ -26,16 +39,29 @@ export async function POST(req: Request) {
   const [paper] = await db.select().from(papers).where(eq(papers.id, payload.paperId)).limit(1)
   if (!paper) return Response.json({ error: 'Paper not found' }, { status: 404 })
 
+  const model = getModel(llm.provider, llm.model, llm.apiKey)
+
   const [cached] = await db.select().from(summaries).where(eq(summaries.paperId, paper.id)).limit(1)
   if (cached) {
+    let trustScore = cached.trustScore
+    let unsupported = cached.unsupportedClaims ?? []
+    // A cached summary whose scoring failed the first time (trust null) gets one
+    // more attempt now — just the score, no re-summarizing. Fixes trust being stuck.
+    if (trustScore === null) {
+      const r = await tryScore(model, paper.id, cached.content)
+      if (r.score !== null) {
+        trustScore = r.score
+        unsupported = r.unsupported
+        await db.update(summaries).set({ trustScore: r.score, unsupportedClaims: r.unsupported }).where(eq(summaries.paperId, paper.id))
+      }
+    }
     return Response.json({
-      summary: cached.content, trustScore: cached.trustScore, unsupported: cached.unsupportedClaims ?? [],
+      summary: cached.content, trustScore, unsupported,
       cached: true, title: paper.title, fullTextAvailable: paper.fullTextAvailable,
     })
   }
 
   const started = Date.now()
-  const model = getModel(llm.provider, llm.model, llm.apiKey)
   const body = paper.fullText ?? paper.abstract ?? ''
   try {
     const summary = await generateSummary(
@@ -45,21 +71,7 @@ export async function POST(req: Request) {
       return Response.json({ error: 'The model returned an empty summary — try again, or pick a different model.' }, { status: 502 })
     }
 
-    // Faithfulness scoring is a best-effort second pass (generateObject, which can
-    // 429 or hiccup on structured output). It must NEVER discard a good summary, so
-    // failures just drop the trust score instead of failing the whole request.
-    let score: number | null = null
-    let unsupported: string[] = []
-    try {
-      const cks = await db.select({ content: chunks.content }).from(chunks).where(eq(chunks.paperId, paper.id)).limit(30)
-      const r = await scoreFaithfulness(model, summary, cks.map((c) => c.content))
-      score = r.score
-      unsupported = r.unsupported
-    } catch (scoreErr) {
-      // Keep the summary; just leave trust unscored. Log the reason so we can tell
-      // rate-limit (free-tier RPM) from a structured-output failure.
-      console.error('faithfulness scoring failed:', scoreErr instanceof Error ? scoreErr.message : scoreErr)
-    }
+    const { score, unsupported } = await tryScore(model, paper.id, summary)
 
     await db
       .insert(summaries)
