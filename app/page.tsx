@@ -120,6 +120,10 @@ export default function Home() {
     catch (e) { setError(msg(e)) } finally { setBusy('') }
   }
 
+  function selectPaper(p: Paper) {
+    setSelected(p); setSummary(null); setPAnswer(null); setPQuestion(''); setError('')
+  }
+
   async function summarize(p: Paper) {
     if (!llmKey.trim()) return setError('Add your model key above to generate summaries.')
     setSelected(p); setSummary(null); setPAnswer(null); setPQuestion(''); setError(''); setBusy('sum')
@@ -201,11 +205,11 @@ export default function Home() {
             </select>
           </div>
           <div className="field">
-            <span className="lab">Model key — summaries &amp; answers{llmKey.trim() && <span className="set" />}</span>
+            <span className="lab">Model key — summaries &amp; answers{llmKey.trim() && <span className="set" />}{llmKey && <button type="button" className="clearkey" onClick={() => setLlmKey('')}>clear</button>}</span>
             <input type="password" value={llmKey} onChange={(e) => setLlmKey(e.target.value)} placeholder={`${PROVIDERS[provider].label} API key`} autoComplete="off" />
           </div>
           <div className="field">
-            <span className="lab">Gemini key — search &amp; library, free{embKey.trim() && <span className="set" />}</span>
+            <span className="lab">Gemini key — search &amp; library, free{embKey.trim() && <span className="set" />}{embKey && <button type="button" className="clearkey" onClick={() => setEmbKey('')}>clear</button>}</span>
             <input type="password" value={embKey} onChange={(e) => setEmbKey(e.target.value)} placeholder="Gemini API key" autoComplete="off" />
           </div>
         </div>
@@ -257,16 +261,19 @@ export default function Home() {
 
           <section className="panel">
             <h2>Library <span style={{ color: 'var(--muted)', fontWeight: 400 }}>({papers.length})</span> <Tip>Every paper you&apos;ve indexed this session. Selecting one generates its summary and opens Q&amp;A grounded in that paper&apos;s text.</Tip></h2>
-            <p className="sub">Click a paper to summarize it and ask it questions.</p>
+            <p className="sub">Select a paper, hit <b>Summarize</b>, then ask questions grounded in its text.</p>
             <div className="grid" style={{ gap: '.6rem' }}>
               {papers.map((p) => (
                 <div key={p.id} className="paper-row">
-                  <button className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => summarize(p)}>
+                  <button className={`paper-card${selected?.id === p.id ? ' active' : ''}`} onClick={() => selectPaper(p)}>
                     <div className="t">{p.title}</div>
                     <div className="m">
                       {p.year ?? '—'} · <span className={`badge ${p.fullTextAvailable ? 'full' : 'abs'}`}>{p.fullTextAvailable ? 'full text' : 'abstract only'}</span>
                       {p.citationCount != null ? ` · ${p.citationCount.toLocaleString()} citations` : ''}
                     </div>
+                  </button>
+                  <button className="btn sum" onClick={() => summarize(p)} disabled={busy === 'sum' && selected?.id === p.id}>
+                    {busy === 'sum' && selected?.id === p.id ? '…' : 'Summarize'}
                   </button>
                   <button className="remove" title="Remove from library" aria-label="Remove from library" onClick={(e) => removePaper(p.id, e)}>✕</button>
                 </div>
@@ -278,7 +285,13 @@ export default function Home() {
           {selected && (
             <section className="panel">
               <h2>{selected.title} <Tip>The summary is written from the paper&apos;s full text. The trust score is a second pass that re-checks every claim against the retrieved source passages and reports the share that hold up.</Tip></h2>
+              {error && <div className="error">{error}</div>}
               {busy === 'sum' && <p className="spinner">Reading the full text, summarizing, and scoring faithfulness…</p>}
+              {!summary && busy !== 'sum' && (
+                <div className="row" style={{ marginTop: '.2rem' }}>
+                  <button className="btn primary" onClick={() => summarize(selected)}>Summarize this paper</button>
+                </div>
+              )}
               {summary && (
                 <>
                   <TrustMeter score={summary.trust} />

@@ -41,8 +41,21 @@ export async function POST(req: Request) {
     const summary = await generateSummary(
       model, { title: paper.title, authors: paper.authors, year: paper.year }, body, paper.fullTextAvailable,
     )
-    const cks = await db.select({ content: chunks.content }).from(chunks).where(eq(chunks.paperId, paper.id)).limit(30)
-    const { score, unsupported } = await scoreFaithfulness(model, summary, cks.map((c) => c.content))
+    if (!summary.trim()) {
+      return Response.json({ error: 'The model returned an empty summary — try again, or pick a different model.' }, { status: 502 })
+    }
+
+    // Faithfulness scoring is a best-effort second pass (generateObject, which can
+    // 429 or hiccup on structured output). It must NEVER discard a good summary, so
+    // failures just drop the trust score instead of failing the whole request.
+    let score: number | null = null
+    let unsupported: string[] = []
+    try {
+      const cks = await db.select({ content: chunks.content }).from(chunks).where(eq(chunks.paperId, paper.id)).limit(30)
+      const r = await scoreFaithfulness(model, summary, cks.map((c) => c.content))
+      score = r.score
+      unsupported = r.unsupported
+    } catch { /* scoring unavailable — keep the summary, leave trust unscored */ }
 
     await db
       .insert(summaries)
