@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Provide a paper id or URL' }, { status: 400 })
   }
   if (typeof embApiKey !== 'string' || embApiKey.trim() === '') {
-    return Response.json({ error: 'Enter your OpenAI key (used for embeddings)' }, { status: 400 })
+    return Response.json({ error: 'Enter your Gemini key (used for embeddings)' }, { status: 400 })
   }
 
   const started = Date.now()

@@ -41,7 +41,7 @@ Next.js (App Router) on Vercel
 │   ├─ /api/papers     library list
 │   └─ /api/metrics    observability aggregates
 ├─ Vercel AI SDK → Anthropic / OpenAI / Gemini / Groq (BYOK)
-├─ OpenAI text-embedding-3-small (1536-dim, BYOK)
+├─ Google Gemini text-embedding-004 (768-dim, BYOK, free tier)
 └─ Neon Postgres + pgvector (papers, chunks, summaries, events)
 ```
 
@@ -79,7 +79,7 @@ npm run dev            # http://localhost:3000
 npm test               # unit tests
 ```
 
-Using the app: pick an LLM provider + model and paste that provider's key, paste an **OpenAI key** for embeddings, then **Add to library** with an arXiv id (e.g. `1706.03762`), a DOI (`DOI:10.1038/…`), or a Semantic Scholar id. Click a paper to summarize; ask questions per paper or across the library.
+Using the app: pick an LLM provider + model and paste that provider's key, paste a **Gemini key** for embeddings (free tier), then **Add to library** with an arXiv id (e.g. `1706.03762`), a DOI (`DOI:10.1038/…`), or a Semantic Scholar id. Click a paper to summarize; ask questions per paper or across the library.
 
 ## Deploy (Vercel)
 

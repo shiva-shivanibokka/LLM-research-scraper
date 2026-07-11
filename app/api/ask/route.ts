@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Enter a question' }, { status: 400 })
   }
   if (typeof payload.embApiKey !== 'string' || payload.embApiKey.trim() === '') {
-    return Response.json({ error: 'Enter your OpenAI key (used for retrieval)' }, { status: 400 })
+    return Response.json({ error: 'Enter your Gemini key (used for retrieval)' }, { status: 400 })
   }
   const llm = parseLLM(payload)
   if ('error' in llm) return Response.json({ error: llm.error }, { status: 400 })

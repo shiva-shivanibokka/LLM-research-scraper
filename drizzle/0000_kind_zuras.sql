@@ -6,7 +6,7 @@ CREATE TABLE "chunks" (
 	"section" text NOT NULL,
 	"page" integer NOT NULL,
 	"content" text NOT NULL,
-	"embedding" vector(1536) NOT NULL
+	"embedding" vector(768) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "events" (

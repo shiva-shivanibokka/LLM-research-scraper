@@ -52,7 +52,7 @@ export default function Home() {
   }
 
   async function addPaper() {
-    if (!embKey.trim()) return setError('Enter your OpenAI key (used for embeddings).')
+    if (!embKey.trim()) return setError('Enter your Gemini key (used for embeddings).')
     setError(''); setBusy('add')
     try {
       await post('/api/ingest', { input, embApiKey: embKey })
@@ -114,7 +114,7 @@ export default function Home() {
             {PROVIDERS[provider].models.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
           <input type="password" className={field} value={llmKey} onChange={(e) => setLlmKey(e.target.value)} placeholder={`${PROVIDERS[provider].label} API key (LLM)`} autoComplete="off" />
-          <input type="password" className={field} value={embKey} onChange={(e) => setEmbKey(e.target.value)} placeholder="OpenAI API key (embeddings)" autoComplete="off" />
+          <input type="password" className={field} value={embKey} onChange={(e) => setEmbKey(e.target.value)} placeholder="Gemini API key (embeddings, free)" autoComplete="off" />
         </div>
       </section>
 
