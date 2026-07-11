@@ -32,25 +32,25 @@ const VS = [
 
 const DEMO_PAPER: Paper = { id: 'demo', title: 'Attention Is All You Need', authors: ['Vaswani et al.'], year: 2017, fullTextAvailable: true, citationCount: 170825 }
 const DEMO_SUMMARY = `## What is this paper about?
-This paper introduces the **Transformer**, a network for sequence tasks (like translation) built entirely on *attention* — a way of letting every word weigh how much to focus on every other word — dropping the recurrent and convolutional layers earlier models relied on. [§Abstract]
+This paper introduces the **Transformer**, a neural network for sequence-to-sequence tasks such as machine translation that is built entirely on *attention* — a mechanism that lets every word directly weigh how much to focus on every other word in the sentence. Crucially, it removes the recurrent (RNN/LSTM) and convolutional layers that all leading models depended on at the time. Because attention looks at the whole sequence at once rather than stepping through it, the architecture is far more parallelizable and much faster to train on modern hardware. [§Abstract]
 
 ## The problem they are solving
-Recurrent models read a sentence word by word, which is slow to train and struggles to link words that are far apart. The authors wanted a model that sees the whole sequence at once and trains far faster. [§1 Introduction]
+Recurrent models process a sentence one token at a time, so computation cannot be parallelized across positions and training is slow. They also struggle to connect words that are far apart, because the signal has to survive many sequential steps. The authors set out to design a model that captures long-range dependencies directly and trains efficiently on GPUs. [§1 Introduction]
 
 ## Their approach
-They stack self-attention and feed-forward layers in an encoder–decoder design, use **multi-head attention** so the model can capture several relationships in parallel, and add positional encodings to track word order without recurrence. [§3 Model Architecture]
+The Transformer uses an **encoder–decoder** design where each layer combines **multi-head self-attention** with a position-wise feed-forward network, wrapped in residual connections and layer normalization. Multi-head attention (the paper uses 8 heads) lets the model attend to several different relationships in parallel, and scaled dot-product attention keeps the computation stable. Since there is no recurrence to track order, they add **positional encodings** (sinusoidal functions) to the input embeddings so the model knows where each word sits. The base model uses 6 stacked layers in both encoder and decoder with a model dimension of 512. [§3 Model Architecture]
 
 ## Key findings
-The Transformer set a new state of the art on English–German (28.4 BLEU) and English–French (41.8 BLEU) translation, while training in a fraction of the time of the previous best models. [§6 Results]
+On the WMT 2014 benchmarks the Transformer set new state-of-the-art results: **28.4 BLEU** on English-to-German and **41.8 BLEU** on English-to-French. It reached the English-to-French result after just 3.5 days of training on eight GPUs — a small fraction of the compute used by the previous best systems. It also generalized well to English constituency parsing, showing the architecture is not specific to translation. [§6 Results]
 
 ## Why it matters
-Nearly every modern large language model — GPT, Claude, Gemini — is built on the Transformer. This is the foundation of the current era of AI.
+The Transformer is the foundation of essentially every modern large language model — GPT, Claude, Gemini, and BERT all descend from it. By making sequence modeling parallelizable, it unlocked training on far larger datasets and models than recurrent networks allowed, which is what made today's era of AI possible.
 
 ## Limitations and future directions
-Attention cost grows quadratically with sequence length, and the evaluation focuses on translation; the authors suggest extending it to other tasks and modalities. [§7 Conclusion]
+Self-attention cost grows quadratically with sequence length, which makes very long inputs expensive — a limitation later work (sparse and linear attention) tries to address. The paper's evaluation focuses on translation and parsing, and the authors propose extending attention-based models to other modalities such as images, audio, and video. [§7 Conclusion]
 
 ## Who should read this?
-Anyone entering machine learning or NLP — it is the single most influential architecture paper of the last decade.`
+Anyone entering machine learning, NLP, or AI research. It is the single most influential architecture paper of the last decade, and understanding it is essentially a prerequisite for understanding modern language models.`
 const DEMO_QUESTION = 'What datasets did they evaluate on?'
 const DEMO_ANSWER = {
   answer: 'They evaluated on two WMT 2014 machine-translation benchmarks: English-to-German and English-to-French [C1]. The Transformer reached 28.4 BLEU on English-to-German and set a new single-model state of the art of 41.8 BLEU on English-to-French [C1].',

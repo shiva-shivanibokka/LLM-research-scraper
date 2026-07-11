@@ -12,9 +12,12 @@ Produce a structured markdown summary with EXACTLY these sections, each as a "##
 6. Limitations and future directions
 7. Who should read this?
 
-When full source text is provided, cite the section you drew each claim from as [§Section].
-Never invent findings that are not in the provided text. If a section cannot be answered from
-what you were given, say so plainly. Respond in raw markdown — no surrounding code fences.`
+Write 3–6 sentences per section — be genuinely informative, not just a sentence each. Include
+the concrete specifics the paper gives: method and model names, datasets, metrics, and numbers.
+Explain jargon briefly in plain language. When full source text is provided, cite the section you
+drew each claim from as [§Section]. Never invent findings that are not in the provided text. If a
+section cannot be answered from what you were given, say so plainly. Respond in raw markdown — no
+surrounding code fences.`
 
 export function buildSummaryPrompt(meta: PaperLite, body: string, fullText: boolean) {
   const header = `Title: ${meta.title}\nAuthors: ${meta.authors.join(', ')}\nYear: ${meta.year ?? 'n/a'}\n`
@@ -28,6 +31,6 @@ export async function generateSummary(
   model: LanguageModel, meta: PaperLite, body: string, fullText: boolean,
 ): Promise<string> {
   const { system, user } = buildSummaryPrompt(meta, body, fullText)
-  const { text } = await generateText({ model, system, prompt: user, maxOutputTokens: 1500 })
+  const { text } = await generateText({ model, system, prompt: user, maxOutputTokens: 3000 })
   return text
 }

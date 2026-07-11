@@ -4,5 +4,8 @@
 // embedding provider, but then the vector(DIM) column + existing rows must be
 // regenerated.
 export const EMBEDDING_PROVIDER = 'google' as const
-export const EMBEDDING_MODEL = 'text-embedding-004'
+// gemini-embedding-001 is the current GA model (text-embedding-004 was retired).
+// Its native dim is 3072; we pin it to 768 via outputDimensionality to match the
+// vector(768) column. Cosine distance is scale-invariant, so no normalization needed.
+export const EMBEDDING_MODEL = 'gemini-embedding-001'
 export const EMBEDDING_DIM = 768
